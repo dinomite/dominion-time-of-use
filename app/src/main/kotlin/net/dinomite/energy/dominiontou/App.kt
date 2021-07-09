@@ -2,7 +2,7 @@ package net.dinomite.energy.dominiontou
 
 import java.io.File
 import java.math.BigDecimal
-import java.math.RoundingMode
+import java.math.RoundingMode.HALF_UP
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -33,32 +33,23 @@ data class BillingPeriod(
 fun main() {
     val kwhEachHour = energyMeasurements()
 
-    kwhEachHour
-        .take(5)
-        .forEach { println(it) }
-    println()
-    kwhEachHour
-        .takeLast(5)
-        .forEach { println(it) }
-    println()
-
-    println("Basic billing")
-
     bill.forEach { billingPeriod ->
-        var totalCost = BigDecimal.ZERO
+        var basicTotalCost = BigDecimal.ZERO
+        var touTotalCost = BigDecimal.ZERO
         var totalKwh = BigDecimal.ZERO
-        kwhEachHour.filter {
-            it.time.isEqual(billingPeriod.startDate.atStartOfDay()) ||
-                    it.time.isAfter(billingPeriod.startDate.atStartOfDay()) &&
-                    it.time.isBefore(billingPeriod.endDate.atStartOfDay())
-        }
+        kwhEachHour
+            .filter {
+                it.time.isEqual(billingPeriod.startDate.atStartOfDay()) ||
+                        it.time.isAfter(billingPeriod.startDate.atStartOfDay()) &&
+                        it.time.isBefore(billingPeriod.endDate.atStartOfDay())
+            }
             .forEach {
-                val cost = BasicBilling.price(it.time) * it.kwh
-                totalCost += cost
+                basicTotalCost += BasicBilling.price(it.time) * it.kwh
+                touTotalCost += TimeOfUseBilling.price(it.time) * it.kwh
                 totalKwh += it.kwh
             }
 
-        println("${totalKwh}kWh $${totalCost.setScale(2, RoundingMode.HALF_UP)}")
+        println("${totalKwh}kWh Basic: $${basicTotalCost.setScale(2, HALF_UP)} TOU: $${touTotalCost.setScale(2, HALF_UP)}")
     }
 }
 

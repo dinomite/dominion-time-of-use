@@ -3,8 +3,8 @@ package net.dinomite.energy.dominiontou
 import net.dinomite.energy.dominiontou.TimeOfUseBilling.Season.SUMMER
 import net.dinomite.energy.dominiontou.TimeOfUseBilling.Season.WINTER
 import net.dinomite.energy.dominiontou.TimeOfUseBilling.SeasonalPrice.PriceGroup
-import net.dinomite.energy.dominiontou.TimeOfUseBilling.SeasonalPrice.PriceGroup.Period
 import net.dinomite.energy.dominiontou.TimeOfUseBilling.SeasonalPrice.PriceGroup.PricePeriod
+import net.dinomite.energy.dominiontou.TimeOfUseBilling.SeasonalPrice.PriceGroup.PricePeriod.Period
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -14,28 +14,26 @@ object TimeOfUseBilling : EnergyPricer {
         SUMMER(listOf(5..9).flatten().toSet()),
         WINTER((listOf(1..4) + listOf(10..12)).flatten().toSet());
 
-        fun month(num: Int) = if (SUMMER.months.contains(num)) SUMMER else WINTER
+        companion object {
+            fun month(num: Int) = if (SUMMER.months.contains(num)) SUMMER else WINTER
+        }
     }
 
     class SeasonalPrice(
         val weekday: PriceGroup,
         val weekend: PriceGroup
     ) {
-        // TODO Ensure all days are covered
         class PriceGroup(
             val superOffPeak: PricePeriod,
             val offPeak: PricePeriod,
             val onPeak: PricePeriod? = null
         ) {
-            // TODO Ensure all periods covered
-            class Period(
-                val start: LocalTime,
-                val end: LocalTime
-            ) {
-                constructor(startHour: Int, endHour: Int) :
-                        this(LocalTime.of(startHour, 0), LocalTime.of(endHour, 0))
-
-                constructor(startHour: Int) : this(LocalTime.of(startHour, 0), LocalTime.MAX)
+            fun price(time: LocalTime): BigDecimal {
+                return when {
+                    superOffPeak.covers(time) -> superOffPeak.price
+                    offPeak.covers(time) -> offPeak.price
+                    else -> onPeak!!.price
+                }
             }
 
             class PricePeriod(
@@ -43,12 +41,32 @@ object TimeOfUseBilling : EnergyPricer {
                 val price: BigDecimal
             ) {
                 constructor(period: Period, price: BigDecimal) : this(listOf(period), price)
+
+                fun covers(time: LocalTime): Boolean {
+                    return periods
+                        .firstOrNull { period ->
+                            period.start == time ||
+                                    period.start.isBefore(time) && period.end.isAfter(time)
+                        }
+                        ?.let { true }
+                        ?: false
+                }
+
+                class Period(
+                    val start: LocalTime,
+                    val end: LocalTime
+                ) {
+                    constructor(startHour: Int, endHour: Int) :
+                            this(LocalTime.of(startHour, 0), LocalTime.of(endHour, 0))
+
+                    constructor(startHour: Int) : this(LocalTime.of(startHour, 0), LocalTime.MAX)
+                }
             }
         }
     }
 
     // Time of use pricing https://www.dominionenergy.com/tou
-    val pricing = mapOf(
+    private val pricing = mapOf(
         SUMMER to SeasonalPrice(
             weekday = PriceGroup(
                 superOffPeak = PricePeriod(listOf(Period(0, 5)), BigDecimal(0.077139)),
@@ -79,7 +97,16 @@ object TimeOfUseBilling : EnergyPricer {
         )
     )
 
+    private val weekendDays = setOf(6, 7)
+
     override fun price(time: LocalDateTime): BigDecimal {
-        TODO("Return the price for the given time")
+        val season = Season.month(time.month.value + 1)
+        val weekend = weekendDays.contains(time.dayOfWeek.value)
+        val seasonalPrice = pricing[season]!!
+        return if (weekend) {
+            seasonalPrice.weekend.price(time.toLocalTime())
+        } else {
+            seasonalPrice.weekday.price(time.toLocalTime())
+        }
     }
 }
