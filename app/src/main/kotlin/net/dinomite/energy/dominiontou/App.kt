@@ -32,10 +32,12 @@ data class BillingPeriod(
 
 fun main() {
     val kwhEachHour = energyMeasurements()
+    var basicTotalCost = BigDecimal.ZERO
+    var touTotalCost = BigDecimal.ZERO
 
     bill.forEach { billingPeriod ->
-        var basicTotalCost = BigDecimal.ZERO
-        var touTotalCost = BigDecimal.ZERO
+        var basicCost = BigDecimal.ZERO
+        var touCost = BigDecimal.ZERO
         var totalKwh = BigDecimal.ZERO
         kwhEachHour
             .filter {
@@ -44,14 +46,20 @@ fun main() {
                         it.time.isBefore(billingPeriod.endDate.atStartOfDay())
             }
             .forEach {
-                basicTotalCost += BasicBilling.price(it.time) * it.kwh
-                touTotalCost += TimeOfUseBilling.price(it.time) * it.kwh
+                basicCost += BasicBilling.price(it.time) * it.kwh
+                touCost += TimeOfUseBilling.price(it.time) * it.kwh
                 totalKwh += it.kwh
             }
 
-        println("${totalKwh}kWh Basic: $${basicTotalCost.setScale(2, HALF_UP)} TOU: $${touTotalCost.setScale(2, HALF_UP)}")
+        basicTotalCost += basicCost
+        touTotalCost += touCost
+        println("${totalKwh.round()} kWh\tBasic: $${basicCost.round()}\tTOU: $${touCost.round()}")
     }
+
+    println("Total cost\tBasic: $${basicTotalCost.round()}\tTOU: $${touTotalCost.round()}")
 }
+
+fun BigDecimal.round(): BigDecimal = setScale(2, HALF_UP)
 
 data class EnergyHour(
     val time: LocalDateTime,
