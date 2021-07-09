@@ -8,12 +8,15 @@ import net.dinomite.energy.dominiontou.SeasonalPrice.PriceGroup.PricePeriod
 import java.io.File
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
 enum class Season(val months: Set<Int>) {
     SUMMER(listOf(5..9).flatten().toSet()),
     WINTER((listOf(1..4) + listOf(10..12)).flatten().toSet());
+
+    fun month(num: Int) = if (SUMMER.months.contains(num)) SUMMER else WINTER
 }
 
 class SeasonalPrice(
@@ -33,6 +36,7 @@ class SeasonalPrice(
         ) {
             constructor(startHour: Int, endHour: Int) :
                     this(LocalTime.of(startHour, 0), LocalTime.of(endHour, 0))
+            constructor(startHour: Int) : this(LocalTime.of(startHour, 0), LocalTime.MAX)
         }
 
         class PricePeriod(
@@ -48,26 +52,30 @@ val pricing = mapOf(
     SUMMER to SeasonalPrice(
         weekday = PriceGroup(
             superOffPeak = PricePeriod(listOf(Period(0, 5)), BigDecimal(0.077139)),
-            offPeak = PricePeriod(listOf(Period(5, 15), Period(18, 24)), BigDecimal(0.095826)),
+            offPeak = PricePeriod(listOf(Period(5, 15), Period(18)), BigDecimal(0.095826)),
             onPeak = PricePeriod(Period(15, 18), BigDecimal(0.229038))
         ),
         weekend = PriceGroup(
             superOffPeak = PricePeriod(listOf(Period(0, 5)), BigDecimal(0.073712)),
-            offPeak = PricePeriod(Period(5, 24), BigDecimal(0.092399)),
+            offPeak = PricePeriod(Period(5), BigDecimal(0.092399)),
         )
     ),
     WINTER to SeasonalPrice(
         weekday = PriceGroup(
             superOffPeak = PricePeriod(listOf(Period(0, 5)), BigDecimal(0.099736)),
-            offPeak = PricePeriod(listOf(Period(5, 6), Period(9, 17), Period(20, 24)), BigDecimal(0.103199)),
+            offPeak = PricePeriod(listOf(Period(5, 6), Period(9, 17), Period(20)), BigDecimal(0.103199)),
             onPeak = PricePeriod(listOf(Period(6, 9), Period(17, 20)), BigDecimal(0.174449))
         ),
         weekend = PriceGroup(
             superOffPeak = PricePeriod(listOf(Period(0, 5)), BigDecimal(0.099772)),
-            offPeak = PricePeriod(Period(5, 24), BigDecimal(0.096309)),
+            offPeak = PricePeriod(Period(5), BigDecimal(0.096309)),
         )
     ),
 )
+
+fun price(time: LocalDateTime) {
+    TODO("Return the price for the given time")
+}
 
 fun main() {
     // Energy measure at time; strip header row, split to (timestamp, energy)
@@ -91,7 +99,13 @@ fun main() {
             }
         }
 
+    // TODO calculate bill for each billing period
+
     kwhEachHour
-        .takeLast(10)
+        .take(5)
+        .forEach { println(it) }
+    println()
+    kwhEachHour
+        .takeLast(5)
         .forEach { println(it) }
 }
