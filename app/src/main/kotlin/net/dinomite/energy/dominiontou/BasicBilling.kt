@@ -4,15 +4,21 @@ import java.io.File
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
-class BasicBilling : EnergyPricer {
+object BasicBilling : EnergyPricer {
     private val periods: List<PricePeriod> = File("billing.csv").readLines()
         // Strip header row
         .drop(1)
         // Split to (start, end, kwh, cost, $/kwh)
         .map { it.split(",") }
         .map { (start, end, _, _, dollarsPerKwh) ->
-            PricePeriod(parseDate(start), parseDate(end), BigDecimal(dollarsPerKwh))
+            LocalDate.parse(start, DateTimeFormatter.ISO_LOCAL_DATE)
+            PricePeriod(
+                LocalDate.parse(start, DateTimeFormatter.ISO_LOCAL_DATE),
+                LocalDate.parse(end, DateTimeFormatter.ISO_LOCAL_DATE),
+                BigDecimal(dollarsPerKwh)
+            )
         }
 
     class PricePeriod(
@@ -25,11 +31,5 @@ class BasicBilling : EnergyPricer {
 
     override fun price(datetime: LocalDateTime): BigDecimal {
         return periods.first { it.appliesTo(datetime.toLocalDate()) }.pricePerKwh
-    }
-
-    companion object {
-        private fun parseDate(date: String): LocalDate {
-            return date.split("-").let { (year, month, day) -> LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }
-        }
     }
 }

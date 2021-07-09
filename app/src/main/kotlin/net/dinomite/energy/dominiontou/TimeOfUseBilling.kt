@@ -9,7 +9,7 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-class TimeOfUseBilling : EnergyPricer {
+object TimeOfUseBilling : EnergyPricer {
     enum class Season(private val months: Set<Int>) {
         SUMMER(listOf(5..9).flatten().toSet()),
         WINTER((listOf(1..4) + listOf(10..12)).flatten().toSet());
