@@ -53,13 +53,13 @@ fun main() {
 
         basicTotalCost += basicCost
         touTotalCost += touCost
-        println("${totalKwh.round()} kWh\tBasic: $${basicCost.round()}\tTOU: $${touCost.round()}")
+        println("${billingPeriod.endDate} ${totalKwh.round(0)} kWh\tBasic: $${basicCost.round()}\tTOU: $${touCost.round()}")
     }
 
-    println("Total cost\tBasic: $${basicTotalCost.round()}\tTOU: $${touTotalCost.round()}")
+    println("Total cost Basic: $${basicTotalCost.round()}\tTOU: $${touTotalCost.round()}")
 }
 
-fun BigDecimal.round(): BigDecimal = setScale(2, HALF_UP)
+fun BigDecimal.round(scale: Int = 2): BigDecimal = setScale(scale, HALF_UP)
 
 data class EnergyHour(
     val time: LocalDateTime,
